@@ -2,38 +2,56 @@
 
 # Import modules
 import argparse
-import sqlite3
 import re
 from Bio import SeqIO
 
 
 # Setting parameters
-parser = argparse.ArgumentParser(description='Toxin Explorer: A pipeline used to explore and to generate a report of the predicted snake toxins')
+parser = argparse.ArgumentParser(description='Protein Explorer: A pipeline used to explore and to generate reports of proteins of interest')
 parser.add_argument("f", nargs="?",
                     type=argparse.FileType('r'),
-                    help="Fasta file of predicted toxins.")
+                    help="Fasta file.")
 parser.add_argument("e", nargs='?',
                     type=argparse.FileType('r'),
                     help="Expression file (RSEM output)")
 parser.add_argument("id", nargs='?',
                     action="store",
                     help="Sample name.")
+parser.add_argument("n", nargs='?',
+                    action="store",
+                    help="Species")
+parser.add_argument("t", nargs='?',
+                    action="store",
+                    help="Seq type (n (nucleotide) or a (amino acids)).")                     
 args = parser.parse_args()
 
 # Open multifasta
 multifasta = SeqIO.parse(args.f, 'fasta')
-mydict = {}
+expression = args.e.readlines()
+infos_to_store = {}
 
+
+if args.t.lower() == "n":
+    type_seq = "nucleotide"
+elif args.t.lower() == "a":
+    type_seq = "aminoacids"
+else:
+    print("Error: Type sequence unknow (Set n or a )")
+
+
+    
 for fasta in multifasta:
-    name, sequence = fasta.id, str(fasta.seq)
-    full_transcript_id, coord, toxin = name.split('|')
-    transcript_id = full_transcript_id.split('.p')[0]
-    toxin_family = toxin.split('_')[-1]
+    header, sequence = fasta.id, str(fasta.seq)
     seq_size = len(sequence)
-    print(seq_size)
 
-    with open(args.e, 'r') as line:
-        
+    for line in expression:
+        all_fields = line.split("\t")
+        transcript_id = all_fields[0]
+        tpm = all_fields[5]
+        fpkm = all_fields[6]
 
-# for k,v in mydict.items():
-#     result.write(">{}\n{}\n".format(k,v))
+        if (header == transcript_id) and tpm != "0.00":
+            infos_to_store[header] = [args.id,args.n,type_seq,seq_size,sequence,tpm,fpkm]
+
+for k,v in infos_to_store.items():
+    print("{}\n{}\n".format(k,v))
