@@ -3,7 +3,9 @@
 # Import modules
 import argparse
 import re
+import pymongo
 from Bio import SeqIO
+from pymongo import MongoClient
 
 
 # Setting parameters
@@ -37,8 +39,6 @@ elif args.t.lower() == "a":
     type_seq = "aminoacids"
 else:
     print("Error: Type sequence unknow (Set n or a )")
-
-
     
 for fasta in multifasta:
     header, sequence = fasta.id, str(fasta.seq)
@@ -51,7 +51,27 @@ for fasta in multifasta:
         fpkm = all_fields[6]
 
         if (header == transcript_id) and tpm != "0.00":
-            infos_to_store[header] = [args.id,args.n,type_seq,seq_size,sequence,tpm,fpkm]
+            #infos_to_store[header] = [args.id,args.n,type_seq,seq_size,sequence,tpm,fpkm]
+            infos_to_store[header] = {"code":args.id,
+                              "species": args.n,
+                              "type_seq": type_seq,
+                              "seq_size": seq_size,
+                              "id": header,
+                              "sequence": sequence,
+                              "tpm": float(tpm),
+                              "fpkm": float(fpkm)}
+# Creating Mongo connection and DB
+conn = pymongo.MongoClient('localhost', 27017)
+db = conn.sequencesdb
+collections = db.list_collection_names()
 
-for k,v in infos_to_store.items():
-    print("{}\n{}\n".format(k,v))
+# Checking if the collection exists
+if 'proteins' in collections:
+    db.proteins.drop()
+else:
+    db.create_collection("proteins")
+
+for v in infos_to_store.values():
+    db.proteins.insert_one(v)
+
+print("{} itens inserted".format(db.proteins.count_documents({})))
