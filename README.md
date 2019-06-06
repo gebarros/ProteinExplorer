@@ -1,3 +1,3 @@
 # ProteinExplorer
 
-### Under Construction
+This project is used to explore biological data.

@@ -118,6 +118,7 @@ elif args.db.lower() == "s":
         cur.execute(sql_insert, rec)
     con.commit()
     print("Itens inserted into SQL database")
+    con.close()
 
 else:
     print("Error: Select a valid database (Set s or m )")
